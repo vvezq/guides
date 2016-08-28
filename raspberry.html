@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html class="desktop" dir="ltr" lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <title>raspberry</title>
+<link rel="stylesheet" type="text/css" href="raspberry_files/css.css">
+<script type="text/javascript">/*<![CDATA[*/var NS='';var JSINFO = {"id":"raspberry","namespace":""};
+/*!]]>*/</script>
+<script type="text/javascript" charset="utf-8" src="raspberry_files/js.php"></script><style id="iris-css">.iris-picker{display:block;position:relative}.iris-picker,.iris-picker *{-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box}input+.iris-picker{margin-top:4px}.iris-error{background-color:#ffafaf}.iris-border{border-radius:3px;border:1px solid #aaa;width:200px;background-color:#fff}.iris-picker-inner{position:absolute;top:0;right:0;left:0;bottom:0}.iris-border .iris-picker-inner{top:10px;right:10px;left:10px;bottom:10px}.iris-picker .iris-square-inner{position:absolute;left:0;right:0;top:0;bottom:0}.iris-picker .iris-square,.iris-picker .iris-slider,.iris-picker .iris-square-inner,.iris-picker .iris-palette{border-radius:3px;box-shadow:inset 0 0 5px rgba(0,0,0,.4);height:100%;width:12.5%;float:left;margin-right:5%}.iris-picker .iris-square{width:76%;margin-right:10%;position:relative}.iris-picker .iris-square-inner{width:auto;margin:0}.iris-ie-9 .iris-square,.iris-ie-9 .iris-slider,.iris-ie-9 .iris-square-inner,.iris-ie-9 .iris-palette{box-shadow:none;border-radius:0}.iris-ie-9 .iris-square,.iris-ie-9 .iris-slider,.iris-ie-9 .iris-palette{outline:1px solid rgba(0,0,0,.1)}.iris-ie-lt9 .iris-square,.iris-ie-lt9 .iris-slider,.iris-ie-lt9 .iris-square-inner,.iris-ie-lt9 .iris-palette{outline:1px solid #aaa}.iris-ie-lt9 .iris-square .ui-slider-handle{outline:1px solid #aaa;background-color:#fff;-ms-filter:"alpha(Opacity=30)"}.iris-ie-lt9 .iris-square .iris-square-handle{background:0;border:3px solid #fff;-ms-filter:"alpha(Opacity=50)"}.iris-picker .iris-strip{margin-right:0;position:relative}.iris-picker .iris-strip .ui-slider-handle{position:absolute;background:0;margin:0;right:-3px;left:-3px;border:4px solid #aaa;border-width:4px 3px;width:auto;height:6px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.2);opacity:.9;z-index:5;cursor:ns-resize}.iris-strip .ui-slider-handle:before{content:" ";position:absolute;left:-2px;right:-2px;top:-3px;bottom:-3px;border:2px solid #fff;border-radius:3px}.iris-picker .iris-slider-offset{position:absolute;top:11px;left:0;right:0;bottom:-3px;width:auto;height:auto;background:transparent;border:0;border-radius:0}.iris-picker .iris-square-handle{background:transparent;border:5px solid #aaa;border-radius:50%;border-color:rgba(128,128,128,.5);box-shadow:none;width:12px;height:12px;position:absolute;left:-10px;top:-10px;cursor:move;opacity:1;z-index:10}.iris-picker .ui-state-focus .iris-square-handle{opacity:.8}.iris-picker .iris-square-handle:hover{border-color:#999}.iris-picker .iris-square-value:focus .iris-square-handle{box-shadow:0 0 2px rgba(0,0,0,.75);opacity:.8}.iris-picker .iris-square-handle:hover::after{border-color:#fff}.iris-picker .iris-square-handle::after{position:absolute;bottom:-4px;right:-4px;left:-4px;top:-4px;border:3px solid #f9f9f9;border-color:rgba(255,255,255,.8);border-radius:50%;content:" "}.iris-picker .iris-square-value{width:8px;height:8px;position:absolute}.iris-ie-lt9 .iris-square-value,.iris-mozilla .iris-square-value{width:1px;height:1px}.iris-palette-container{position:absolute;bottom:0;left:0;margin:0;padding:0}.iris-border .iris-palette-container{left:10px;bottom:10px}.iris-picker .iris-palette{margin:0;cursor:pointer}.iris-square-handle,.ui-slider-handle{border:0;outline:0}</style>
+</head>
+<body>
+<div class="dokuwiki export">
+
+<h1 class="sectionedit1" id="rasbperry_pi_3_home_gateway_firewall_with_ipv4_and_ipv6_support">RASBPERRY PI 3 HOME GATEWAY/FIREWALL WITH IPv4 AND IPv6 SUPPORT</h1>
+<div class="level1">
+
+<p>
+Hardware:
+</p>
+<ul>
+<li class="level1"><div class="li"> Raspberry Pi 3 Model B</div>
+</li>
+<li class="level1"><div class="li"> TP-Link UE300 USB 3.0 to GbE Adapter (it was listed as being supported out of the box on raspberry pi)</div>
+</li>
+</ul>
+<pre class="code">apt-get install ntp wide-dhcpv6-client</pre>
+
+<p>
+/etc/ssh/sshd_conf
+</p>
+<pre class="code">PermitRootLogin no
+PasswordAuthentication no</pre>
+
+<p>
+I set the built-in NIC permanently as eth0:
+</p>
+<pre class="code">export INTERFACE=eth0
+export MATCHADDR=`ip addr show $INTERFACE | grep ether | awk '{print $2}'`
+/lib/udev/write_net_rules</pre>
+
+<p>
+I added configuration for a second NIC by adding the following to /etc/network/interfaces:
+</p>
+<pre class="code">auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+
+allow-hotplug eth1
+iface eth1 inet static
+   address 192.168.99.1
+   netmask 255.255.255.0</pre>
+<pre class="code">export INTERFACE=eth1
+export MATCHADDR=`ip addr show $INTERFACE | grep ether | awk '{print $2}'`
+/lib/udev/write_net_rules</pre>
+
+<p>
+/etc/wide-dhcpv6/dhcp6c.conf
+</p>
+<pre class="code"># eth0 is my external facing interface (WAN)
+interface eth0 {
+# request a non-temporary address
+    send ia-na 1;
+    # request prefix delegation address
+    send ia-pd 1;
+    # send rapid commit, don't wait for RA
+    send rapid-commit;
+    # we'd like information about DNS, too
+    request domain-name-servers;
+    request domain-name;
+    # script provided by my distribution, it adds nameservers to resolv.conf
+    script "/etc/wide-dhcpv6/dhcp6c-script";
+};
+
+id-assoc pd 1 {
+    # internal facing interface (LAN), you can duplicate this section if you want more subnets for more interfaces
+    prefix-interface eth1 {
+        # subnet. Combined with ia-pd to configure the subnet for this interface.
+        sla-id 0;
+        #IP address "postfix". if not set it will use EUI-64 address of the interface. Combined with SLA-ID'd prefix to create full IP address of interface. In my case, ifid 1 means that eth1 will get a IPv6 ending with ::1
+        ifid 1;
+        # prefix bits assigned. Take the prefix size you're assigned (something like /48 or /56) and subtract it from 64. In my case I was being assigned a /56, so 64-56=8
+        sla-len 8;
+    };
+};
+
+id-assoc na 1 {
+    # id-assoc for eth1
+};</pre>
+
+<p>
+Installed dnsmasq
+</p>
+<pre class="code">apt-get install dnsmasq</pre>
+
+<p>
+/etc/dnsmasq.conf
+</p>
+<pre class="code">bogus-priv
+local=/alho.lan/
+interface=eth1
+expand-hosts
+domain=alho.lan
+dhcp-range=tag:eth1,::1,constructor:eth1,ra-names,12h
+dhcp-range=lan,192.168.99.50,192.168.99.150,12h
+enable-ra
+dhcp-authoritative</pre>
+
+<p>
+Opened the /etc/hosts file in a text editor and added the raspberry pi itself, to so that <abbr title="Domain Name System">DNS</abbr> lookups of the raspberry pi will work in a <abbr title="Local Area Network">LAN</abbr> where the raspberry pi is handling the DHCP requests (dnsmasq will handle <abbr title="Domain Name System">DNS</abbr>
+ requests for the IP addresses it has given DHCP leases to, as well as 
+what it finds in the hosts file.  The rest is delegated to the upstream <abbr title="Domain Name System">DNS</abbr> server)
+</p>
+<pre class="code">127.0.0.1      	localhost
+::1    		localhost ip6-localhost ip6-loopback
+ff02::1		ip6-allnodes
+ff02::2		ip6-allrouters
+
+127.0.1.1      	rgw
+192.168.99.1   	rgw.alho.lan rgw raspberrypi</pre>
+
+<p>
+Edited the /etc/sysctl.conf file to set up IPv4 and IPv6 routing.
+</p>
+<pre class="code">net.ipv4.ip_forward=1
+net.ipv6.conf.all.forwarding=1
+net.ipv6.conf.eth0.accept_ra = 2</pre>
+
+<p>
+ferm is a utility that makes it easy to set the routing and firewall 
+rules at boot time.
+The version of ferm in “jessie” doesn’t start at boot, because “jessie” 
+dropped SYSV init in favour of systemd, and the version of ferm in 
+“jessie” doesn’t have a systemd configuration, so I needed to manually 
+download and install the version of ferm from debian testing (I 
+downloaded from regular debian, since ferm doesn’t have anything 
+platform specific):
+</p>
+<pre class="code">cd /tmp
+wget http://ftp.no.debian.org/debian/pool/main/f/ferm/ferm_&lt;latest&gt;_all.deb
+dpkg --install /tmp/ferm_&lt;latest&gt;_all.deb</pre>
+
+<p>
+Modified the /etc/ferm/ferm.conf
+</p>
+<pre class="code">@def $DEV_WORLD = eth0;
+@def $DEV_PRIVATE = eth1;
+
+def $NET_PRIVATE = 192.168.99.0/24;
+
+table filter {
+    chain INPUT {
+        policy DROP;
+
+        # connection tracking
+        mod state state INVALID DROP;
+        mod state state (ESTABLISHED RELATED) ACCEPT;
+
+        # allow local packet
+        interface lo ACCEPT;
+
+        # allow private net
+        interface $DEV_PRIVATE ACCEPT;
+
+        # respond to ping
+        proto icmp ACCEPT;
+
+        # allow IPsec
+        #proto udp dport 500 ACCEPT;
+        #proto (esp ah) ACCEPT;
+
+        # allow SSH connections
+        #proto tcp dport ssh ACCEPT;
+    }
+    chain OUTPUT {
+        policy ACCEPT;
+
+        # connection tracking
+        #mod state state INVALID DROP;
+        mod state state (ESTABLISHED RELATED) ACCEPT;
+    }
+
+    chain FORWARD {
+        policy DROP;
+
+        # connection tracking
+        mod state state INVALID DROP;
+        mod state state (ESTABLISHED RELATED) ACCEPT;
+
+        # connections from the internal net to the internet or
+        # to other internal nets are allowed
+        interface $DEV_PRIVATE ACCEPT;
+
+        # the rest is dropped by the above policy
+    }
+}
+
+table nat {
+    chain POSTROUTING {
+        # masquerade private IP addresses
+        saddr $NET_PRIVATE outerface $DEV_WORLD MASQUERADE;
+    }
+}
+
+# IPv6:
+domain ip6 table filter {
+    chain INPUT {
+        policy DROP;
+
+        # connection tracking
+        mod state state INVALID DROP;
+        mod state state (ESTABLISHED RELATED) ACCEPT;
+
+        # allow ICMP (for neighbor solicitation, like ARP for IPv4)
+        proto ipv6-icmp ACCEPT;
+
+interface $DEV_WORLD {
+       	saddr fe80::/10 proto udp dport 546 ACCEPT;
+    }
+
+}
+    chain OUTPUT {
+        policy ACCEPT;
+
+        # connection tracking
+        #mod state state INVALID DROP;
+        mod state state (ESTABLISHED RELATED) ACCEPT;
+    }
+
+    chain FORWARD {
+        policy DROP;
+
+       	# connections from the internal net to the internet or
+        # to other internal nets are allowed
+        interface $DEV_PRIVATE ACCEPT;
+
+        proto ipv6-icmp ACCEPT;
+
+       	# connection tracking
+        mod state state INVALID DROP;
+        mod state state (ESTABLISHED RELATED) ACCEPT;
+    }
+}</pre>
+
+<p>
+Put /var/log on tmpfs (limited to 100MB in size), synced to a backing store on the sd card using rsync
+</p>
+
+<p>
+/etc/fstab
+</p>
+<pre class="code">tmpfs    /var/log    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0</pre>
+
+<p>
+/etc/init.d/ramdiskvarlog
+</p>
+<pre class="code">    #!/bin/sh
+    ### BEGIN INIT INFO
+    # Provides:          ramdiskvarlog
+    # Required-Start:    $local_fs $time
+    # X-Stop-After:      $time
+    # Required-Start:    $local_fs $time
+    # Required-Stop:     $local_fs
+    # Default-Start:     S
+    # Default-Stop:      0 1 6
+    # Short-Description: Restore to and save logs from tmpfs filesystem
+    # Description:       Restore to and save logs from tmpfs filesystem
+    ### END INIT INFO
+     
+    # /etc/init.d/ramdiskvarlog
+    #
+     
+    case "$1" in
+      start)
+        echo "Copying files to ramdisk"
+        rsync -av /var/backup/log/ /var/log/
+        echo [`date +"%Y-%m-%d %H:%M"`] Ramdisk Synched from HD &gt;&gt; /var/log/ramdisk_sync.log
+        ;;
+      sync)
+        echo "Synching files from ramdisk to Harddisk"
+        echo [`date +"%Y-%m-%d %H:%M"`] Ramdisk Synched to HD &gt;&gt; /var/log/ramdisk_sync.log
+        rsync -avy --delete --recursive --force /var/log/ /var/backup/log/
+        ;;
+      stop)
+        echo "Synching logfiles from ramdisk to Harddisk"
+        echo [`date +"%Y-%m-%d %H:%M"`] Ramdisk Synched to HD &gt;&gt; /var/log/ramdisk_sync.log
+        rsync -av --delete --recursive --force /var/log/ /var/backup/log/
+        ;;
+      *)
+        echo "Usage: /etc/init.d/ramdisk {start|stop|sync}"
+        exit 1
+        ;;
+    esac
+     
+    exit 0</pre>
+<pre class="code">    
+chmod +x /etc/init.d/ramdiskvarlog</pre>
+
+<p>
+Created a directory to store the logs persistently, and populated it 
+initially with the contents of the existing /var/log with the following 
+command line commands.
+</p>
+<pre class="code">    	
+mkdir -p /var/backup/log
+/etc/init.d/ramdiskvarlog sync</pre>
+<pre class="code">systemctl enable ramdiskvarlog</pre>
+<pre class="code">crontab -e        	
+2 7 * * * /etc/init.d/ramdiskvarlog sync &gt;&gt; /dev/null 2&gt;&amp;1</pre>
+
+<p>
+Disable xconsole logging.
+</p>
+
+<p>
+/etc/rsyslog.conf
+</p>
+<pre class="code">#daemon.*;mail.*;\
+#    news.err;\
+#    *.=debug;*.=info;\
+#    *.=notice;*.=warn   |/dev/xconsole</pre>
+
+</div>
+</div>
+
+
+</body></html>
