@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <title>kolab</title>
+<meta name="generator" content="DokuWiki"/>
+<meta name="robots" content="noindex,nofollow"/>
+<meta name="keywords" content="kolab"/>
+<link rel="search" type="application/opensearchdescription+xml" href="lib/exe/opensearch.html" title="docs"/>
+<link rel="start" href="kolab.html"/>
+<link rel="contents" href="kolab.html" title="Sitemap"/>
+<link rel="alternate" type="application/rss+xml" title="Recent Changes" />
+<link rel="alternate" type="application/rss+xml" title="Current namespace" />
+<link rel="alternate" type="text/html" title="Plain HTML" href="kolab.html"/>
+<link rel="alternate" type="text/plain" title="Wiki Markup" href="kolab.html"/>
+<link rel="stylesheet" type="text/css" href="lib/exe/css.php.t.dokuwiki.css"/>
+<script type="text/javascript">/*<![CDATA[*/var NS='';var JSINFO = {"id":"kolab","namespace":""};
+/*!]]>*/</script>
+<script type="text/javascript" charset="utf-8" src="lib/exe/js.php.t.dokuwiki.js"></script>
+</head>
+<body>
+<div class="dokuwiki export">
+<!-- TOC START -->
+<div id="dw__toc">
+<h3 class="toggle">Table of Contents</h3>
+<div>
+
+<ul class="toc">
+<li class="level1"><div class="li"><a href="#kolab_34_multi_domain_on_centos_7_tls_spf_dkim_dmarc_postgrey">KOLAB 3.4 MULTI DOMAIN ON CENTOS 7 (TLS, SPF, DKIM, DMARC, POSTGREY)</a></div></li>
+<li class="level1"><div class="li"><a href="#requirements">REQUIREMENTS</a></div></li>
+<li class="level1"><div class="li"><a href="#installation">INSTALLATION</a></div></li>
+<li class="level1"><div class="li"><a href="#amavisd">AMAVISD</a></div></li>
+<li class="level1"><div class="li"><a href="#cyrus">CYRUS</a></div></li>
+<li class="level1"><div class="li"><a href="#roundcube">ROUNDCUBE</a></div></li>
+<li class="level1"><div class="li"><a href="#postfix">POSTFIX</a></div>
+<ul class="toc">
+<li class="level2"><div class="li"><a href="#postfix_part_1">POSTFIX PART 1</a></div></li>
+<li class="level2"><div class="li"><a href="#postfix_part_2_aliasdomains_optional">POSTFIX PART 2 ALIASDOMAINS (OPTIONAL)</a></div></li>
+</ul>
+</li>
+<li class="level1"><div class="li"><a href="#enable_tls">ENABLE TLS</a></div></li>
+<li class="level1"><div class="li"><a href="#anti-spam">ANTI-SPAM</a></div>
+<ul class="toc">
+<li class="level2"><div class="li"><a href="#spf">SPF</a></div></li>
+<li class="level2"><div class="li"><a href="#opendkim">OPENDKIM</a></div></li>
+<li class="level2"><div class="li"><a href="#dmarc">DMARC</a></div></li>
+<li class="level2"><div class="li"><a href="#postgrey">POSTGREY</a></div></li>
+</ul>
+</li>
+<li class="level1"><div class="li"><a href="#additional_fixes">ADDITIONAL FIXES</a></div>
+<ul class="toc">
+<li class="level2"><div class="li"><a href="#log_directory_permissions">LOG DIRECTORY PERMISSIONS</a></div></li>
+<li class="level2"><div class="li"><a href="#disable_wallace_footer_module">DISABLE WALLACE FOOTER MODULE</a></div></li>
+<li class="level2"><div class="li"><a href="#root_emails">ROOT EMAILS</a></div></li>
+<li class="level2"><div class="li"><a href="#clamav_updates">CLAMAV UPDATES</a></div></li>
+</ul>
+</li>
+<li class="level1"><div class="li"><a href="#references">REFERENCES</a></div></li>
+</ul>
+</div>
+</div>
+<!-- TOC END -->
+
+<h1 class="sectionedit1" id="kolab_34_multi_domain_on_centos_7_tls_spf_dkim_dmarc_postgrey">KOLAB 3.4 MULTI DOMAIN ON CENTOS 7 (TLS, SPF, DKIM, DMARC, POSTGREY)</h1>
+<div class="level1">
+
+</div>
+<!-- EDIT1 SECTION "KOLAB 3.4 MULTI DOMAIN ON CENTOS 7 (TLS, SPF, DKIM, DMARC, POSTGREY)" [1-84] -->
+<h1 class="sectionedit2" id="requirements">REQUIREMENTS</h1>
+<div class="level1">
+<ul>
+<li class="level1"><div class="li"> You understand the following technologies: SMTP, IMAP, <abbr title="Domain Name System">DNS</abbr>, LDAP, HTTP/HTTPS.</div>
+</li>
+<li class="level1"><div class="li"> Do not create additional domains using kolab-webadmin until Kolab changes below are done.</div>
+</li>
+</ul>
+
+</div>
+<!-- EDIT2 SECTION "REQUIREMENTS" [85-289] -->
+<h1 class="sectionedit3" id="installation">INSTALLATION</h1>
+<div class="level1">
+
+<p>
+Read the official installation guide!
+</p>
+
+</div>
+<!-- EDIT3 SECTION "INSTALLATION" [290-356] -->
+<h1 class="sectionedit4" id="amavisd">AMAVISD</h1>
+<div class="level1">
+
+<p>
+Change Amavisd
+</p>
+
+<p>
+We tell amavisd to accept all domains.
+</p>
+
+<p>
+vi /etc/amavisd/amavisd.conf
+</p>
+<pre class="code"># Replace that line
+@local_domains_maps = ( [&quot;.$mydomain&quot;] );
+# With this line
+$local_domains_re = new_RE( qr&#039;.*&#039; );</pre>
+
+</div>
+<!-- EDIT4 SECTION "AMAVISD" [357-598] -->
+<h1 class="sectionedit5" id="cyrus">CYRUS</h1>
+<div class="level1">
+
+<p>
+Change Cyrus IMAPD
+</p>
+
+<p>
+Tell the IMAP server how to find our other domains. Add the following to the bottom of /etc/imapd.conf
+</p>
+<pre class="code">ldap_domain_base_dn: cn=kolab,cn=config
+ldap_domain_filter: (&amp;(objectclass=domainrelatedobject)(associateddomain=%s))
+ldap_domain_name_attribute: associatedDomain
+ldap_domain_scope: sub
+ldap_domain_result_attribute: inetdomainbasedn</pre>
+
+</div>
+<!-- EDIT5 SECTION "CYRUS" [599-992] -->
+<h1 class="sectionedit6" id="roundcube">ROUNDCUBE</h1>
+<div class="level1">
+
+<p>
+Change Roundcube (webmail)
+</p>
+
+<p>
+Basically you need to change the base_dn at several places. The placeholder ‘%dc’ is replaced during run-time with the real domain the user belongs to.
+</p>
+
+<p>
+To save me some typing I’m pasting the diff output produced by git here. So it looks more than it actually is…
+</p>
+
+<p>
+Do not use the diff directly, rather use it as reference what to edit.
+</p>
+<pre class="code">diff --git a/roundcubemail/password.inc.php b/roundcubemail/password.inc.php
+index c3d449c..eafc8e5 100644
+--- a/roundcubemail/password.inc.php
++++ b/roundcubemail/password.inc.php
+@@ -45,7 +45,7 @@
+
+     // LDAP base name (root directory)
+     // Exemple: &#039;dc=exemple,dc=com&#039;
+-    $config[&#039;password_ldap_basedn&#039;] = &#039;ou=People,dc=skolar,dc=de&#039;;
++    $config[&#039;password_ldap_basedn&#039;] = &#039;ou=People,%dc&#039;;
+
+     // LDAP connection method
+     // There is two connection method for changing a user&#039;s LDAP password.
+@@ -99,7 +99,7 @@
+     // If password_ldap_searchDN is set, the base to search in using the filter below.
+     // Note that you should comment out the default password_ldap_userDN_mask setting
+     // for this to take effect.
+-    $config[&#039;password_ldap_search_base&#039;] = &#039;ou=People,dc=skolar,dc=de&#039;;
++    $config[&#039;password_ldap_search_base&#039;] = &#039;ou=People,%dc&#039;;
+
+     // LDAP search filter
+     // If password_ldap_searchDN is set, the filter to use when
+
+diff --git a/roundcubemail/calendar.inc.php b/roundcubemail/calendar.inc.php
+index 98be7b9..8f98f8a 100644
+--- a/roundcubemail/calendar.inc.php
++++ b/roundcubemail/calendar.inc.php
+@@ -22,11 +22,11 @@
+             &#039;hosts&#039;                 =&gt; &#039;localhost&#039;,
+             &#039;port&#039;                  =&gt; 389,
+             &#039;use_tls&#039;               =&gt; false,
+-            &#039;base_dn&#039;               =&gt; &#039;ou=Resources,dc=skolar,dc=de&#039;,
++            &#039;base_dn&#039;               =&gt; &#039;ou=Resources,%dc&#039;,
+             &#039;user_specific&#039;         =&gt; true,
+             &#039;bind_dn&#039;               =&gt; &#039;%dn&#039;,
+             &#039;bind_pass&#039;             =&gt; &#039;&#039;,
+-            &#039;search_base_dn&#039;        =&gt; &#039;ou=People,dc=skolar,dc=de&#039;,
++            &#039;search_base_dn&#039;        =&gt; &#039;ou=People,%dc&#039;,
+             &#039;search_bind_dn&#039;        =&gt; &#039;uid=kolab-service,ou=Special Users,dc=skolar,dc=de&#039;,
+             &#039;search_bind_pw&#039;        =&gt; &#039;xUlA7PzBZnRaYV4&#039;,
+             &#039;search_filter&#039;         =&gt; &#039;(&amp;(objectClass=inetOrgPerson)(mail=%fu))&#039;,
+
+diff --git a/roundcubemail/config.inc.php b/roundcubemail/config.inc.php
+index bfbfba3..60dc0b2 100644
+--- a/roundcubemail/config.inc.php
++++ b/roundcubemail/config.inc.php
+@@ -6,7 +6,7 @@
+
+     $config[&#039;session_domain&#039;] = &#039;&#039;;
+     $config[&#039;des_key&#039;] = &quot;FMlzG7LeqiUSOSK2T8xKQTHR&quot;;
+     $config[&#039;use_secure_urls&#039;] = true;
+     $config[&#039;assets_path&#039;] = &#039;assets/&#039;;
+
+@@ -154,11 +154,11 @@
+                     &#039;hosts&#039;                     =&gt; Array(&#039;localhost&#039;),
+                     &#039;port&#039;                      =&gt; 389,
+                     &#039;use_tls&#039;                   =&gt; false,
+-                    &#039;base_dn&#039;                   =&gt; &#039;ou=People,dc=skolar,dc=de&#039;,
++                    &#039;base_dn&#039;                   =&gt; &#039;ou=People,%dc&#039;,
+                     &#039;user_specific&#039;             =&gt; true,
+                     &#039;bind_dn&#039;                   =&gt; &#039;%dn&#039;,
+                     &#039;bind_pass&#039;                 =&gt; &#039;&#039;,
+-                    &#039;search_base_dn&#039;            =&gt; &#039;ou=People,dc=skolar,dc=de&#039;,
++                    &#039;search_base_dn&#039;            =&gt; &#039;ou=People,%dc&#039;,
+                     &#039;search_bind_dn&#039;            =&gt; &#039;uid=kolab-service,ou=Special Users,dc=skolar,
+                     &#039;search_bind_pw&#039;            =&gt; &#039;xUlA7PzBZnRaYV4&#039;,
+                     &#039;search_filter&#039;             =&gt; &#039;(&amp;(objectClass=inetOrgPerson)(mail=%fu))&#039;,
+@@ -196,7 +196,7 @@
+                             &#039;photo&#039;             =&gt; &#039;jpegphoto&#039;
+                         ),
+                     &#039;groups&#039;                    =&gt; Array(
+-                            &#039;base_dn&#039;           =&gt; &#039;ou=Groups,dc=skolar,dc=de&#039;,
++                            &#039;base_dn&#039;           =&gt; &#039;ou=Groups,%dc&#039;,
+                             &#039;filter&#039;            =&gt; &#039;(&amp;&#039; . &#039;(|(objectclass=groupofuniquenames)(obj
+                             &#039;object_classes&#039;    =&gt; Array(&quot;top&quot;, &quot;groupOfUniqueNames&quot;),
+                             &#039;member_attr&#039;       =&gt; &#039;uniqueMember&#039;,
+
+diff --git a/roundcubemail/kolab_auth.inc.php b/roundcubemail/kolab_auth.inc.php
+index 9fb5335..8eff518 100644
+--- a/roundcubemail/kolab_auth.inc.php
++++ b/roundcubemail/kolab_auth.inc.php
+@@ -8,7 +8,7 @@
+         &#039;port&#039;                      =&gt; 389,
+         &#039;use_tls&#039;                   =&gt; false,
+         &#039;user_specific&#039;             =&gt; false,
+-        &#039;base_dn&#039;                   =&gt; &#039;ou=People,dc=skolar,dc=de&#039;,
++        &#039;base_dn&#039;                   =&gt; &#039;ou=People,%dc&#039;,
+         &#039;bind_dn&#039;                   =&gt; &#039;uid=kolab-service,ou=Special Users,dc=skolar,dc=de&#039;,
+         &#039;bind_pass&#039;                 =&gt; &#039;xUlA7PzBZnRaYV4&#039;,
+         &#039;writable&#039;                  =&gt; false,
+@@ -26,11 +26,14 @@
+         &#039;sizelimit&#039;                 =&gt; &#039;0&#039;,
+         &#039;timelimit&#039;                 =&gt; &#039;0&#039;,
+         &#039;groups&#039;                    =&gt; Array(
+-                &#039;base_dn&#039;           =&gt; &#039;ou=Groups,dc=skolar,dc=de&#039;,
++                &#039;base_dn&#039;           =&gt; &#039;ou=Groups,%dc&#039;,
+                 &#039;filter&#039;            =&gt; &#039;(|(objectclass=groupofuniquenames)(objectclass=groupofurl
+                 &#039;object_classes&#039;    =&gt; Array(&#039;top&#039;, &#039;groupOfUniqueNames&#039;),
+                 &#039;member_attr&#039;       =&gt; &#039;uniqueMember&#039;,
+             ),
++        &#039;domain_base_dn&#039;           =&gt; &#039;cn=kolab,cn=config&#039;,
++        &#039;domain_filter&#039;            =&gt; &#039;(&amp;(objectclass=domainrelatedobject)(associateddomain=%s))&#039;,
++        &#039;domain_name_attr&#039;         =&gt; &#039;associateddomain&#039;,
+     );</pre>
+
+</div>
+<!-- EDIT6 SECTION "ROUNDCUBE" [993-6665] -->
+<h1 class="sectionedit7" id="postfix">POSTFIX</h1>
+<div class="level1">
+
+<p>
+Now this is actually the hardest part that requires the most changes. First we apply a couple of changes that allows us to have multiple domains besides our management domain (the domain we used to install Kolab). However those changes will not support domains having aliases. E.g. having the domain kodira.de with an alias of tourschall.com. To get domains with working aliases, we need to do even more.
+</p>
+
+</div>
+<!-- EDIT7 SECTION "POSTFIX" [6666-7094] -->
+<h2 class="sectionedit8" id="postfix_part_1">POSTFIX PART 1</h2>
+<div class="level2">
+<ul>
+<li class="level1"><div class="li"> Case 1: duplet/triplet domains are NOT needed (something.domain.com), please continue to the next steps. </div>
+</li>
+<li class="level1"><div class="li"> Case 2: duplet/triplet domains are needed, please read the official documentation: <a href="http://docs.kolab.org/howtos/multi-domain.html#postfix-changes" class="urlextern" title="http://docs.kolab.org/howtos/multi-domain.html#postfix-changes"  rel="nofollow">http://docs.kolab.org/howtos/multi-domain.html#postfix-changes</a>). </div>
+</li>
+</ul>
+
+<p>
+<strong>POSTFIX WITHOUT TUPLET/TRIPLET DOMAINS</strong>
+</p>
+
+<p>
+I ended up throwing out the concept of using a “duplet” and “triplet” copy of each config file. Basically this means we are taking away the option of receiving mail on sub-domains (like user@mail.example.com) - and will only receive mail to the domain itself (like user@example.com). In my case we did not need to receive mail on sub-domains, and I&#039;m glad to simplify the config files.
+</p>
+
+<p>
+The only change I made to the Postfix configuration is the search_base setting in each of the /etc/postfix/ldap/ files listed in the below bash script. You can choose to edit the existing files in place (could possibly get overwritten by an update) or create copies of them to edit. In the latter case you&#039;ll still need to run some postconf updates to point Postfix (main.cf) to the new files. This script will update the existing files in place.
+</p>
+
+<p>
+In comparing this script to the official documentation, you may notice that I removed the virtual_alias_maps_catchall reference, as this file was not present on my installation.
+</p>
+<pre class="code">#!/bin/bash
+for map in local_recipient_maps \
+        virtual_alias_maps \
+        virtual_alias_maps_mailforwarding \
+        virtual_alias_maps_sharedfolders \
+        mailenabled_distgroups \
+        mailenabled_dynamic_distgroups \
+        transport_maps; do
+ 
+[ ! -f &quot;/etc/postfix/ldap/${map}.cf&quot; ] &amp;&amp; continue
+ 
+sed -r -i \
+-e &#039;s|^search_base = .*$|search_base = dc=%2,dc=%1|g&#039; \
+/etc/postfix/ldap/${map}.cf
+ 
+done</pre>
+
+<p>
+If you&#039;d prefer to make the changes manually, simply change the search_base in each one of those files to:
+</p>
+<pre class="code">search_base = dc=%2,dc=%1</pre>
+
+<p>
+Questionably, the documentation directs you to use the same search_base in all files, while the setting in the two original distgroups files is prefixed with ou=Groups. This hasn&#039;t caused me any problems so far, though I may revisit this if the need arises to use distribution groups which I assume those two files are for.
+</p>
+
+<p>
+<strong>IMPORTANT</strong>
+</p>
+
+<p>
+By default Kolab adds domain alias &lt;hostname&gt;.domain.com. Please remove it or you will get “unknown user” errors.
+</p>
+
+<p>
+<strong>Shared Folders Transport Maps</strong>
+</p>
+
+<p>
+If you plan to use shared folders for hosted domains you currently have to add a transport rule for each parent domain (no alias/child domain) manually to /etc/postfix/transport call postmap /etc/postfix/transport afterwords and reload postfix.
+</p>
+<pre class="code">shared@example.org      lmtp:unix:/var/lib/imap/socket/lmtp
+shared@apple.com        lmtp:unix:/var/lib/imap/socket/lmtp
+shared@microsoft.com    lmtp:unix:/var/lib/imap/socket/lmtp</pre>
+
+<p>
+Currently there’s no automated process or ldap equivalent configuration for it.
+</p>
+
+</div>
+<!-- EDIT8 SECTION "POSTFIX PART 1" [7095-10111] -->
+<h2 class="sectionedit9" id="postfix_part_2_aliasdomains_optional">POSTFIX PART 2 ALIASDOMAINS (OPTIONAL)</h2>
+<div class="level2">
+
+<p>
+For each domain that should support alias domains we need to add 4 files. We’re doing this based on the following example.
+</p>
+<pre class="code">Domain: kodira.de
+Alias: tourschall.com</pre>
+
+<p>
+First create the directory /etc/postfix/ldap/kodira.de (name of the real domain)
+</p>
+
+<p>
+In that directory create the following 4 files, but do not just copy&amp;past them. You have to adjust them to your setup.
+</p>
+<pre class="code"># local_recipient_maps.cf
+# Adjust domain, bind_dn, bind_pw
+server_host = localhost
+server_port = 389
+version = 3
+search_base = cn=kolab,cn=config
+scope = sub
+domain = ldap:/etc/postfix/ldap/kodira.de/mydestination.cf
+bind_dn = uid=kolab-service,ou=Special Users,dc=skolar,dc=de
+bind_pw = XXX
+query_filter = (&amp;(|(mail=%s)(alias=%s))(|(objectclass=kolabinetorgperson)(|(objectclass=kolabgroupofuniquenames)(objectclass=kolabgroupofurls))(|(|(objectclass=groupofuniquenames)(objectclass=groupofurls))(objectclass=kolabsharedfolder))(objectclass=kolabsharedfolder)))
+result_attribute = mail
+
+# mydestination.cf
+# Adjust bind_dn, bind_pw, query_filter
+server_host = localhost
+server_port = 389
+version = 3
+search_base = cn=kolab,cn=config
+scope = sub
+bind_dn = uid=kolab-service,ou=Special Users,dc=skolar,dc=de
+bind_pw = XXX
+query_filter = (&amp;(associatedDomain=%s)(associatedDomain=kodira.de))
+result_attribute = associateddomain
+
+# transport_maps.cf
+# Adjust domain, bind_dn, bind_pw
+server_host = localhost
+server_port = 389
+version = 3
+search_base = cn=kolab,cn=config
+scope = sub
+domain = ldap:/etc/postfix/ldap/kodira.de/mydestination.cf
+bind_dn = uid=kolab-service,ou=Special Users,dc=skolar,dc=de
+bind_pw = XXX
+query_filter = (&amp;(|(mailAlternateAddress=%s)(alias=%s)(mail=%s))(objectclass=kolabinetorgperson))
+result_attribute = mail
+result_format = lmtp:unix:/var/lib/imap/socket/lmtp
+
+# virtual_alias_maps.cf
+# Adjust search_base, domain, bind_dn, bind_pw
+server_host = localhost
+server_port = 389
+version = 3
+search_base = dc=kodira,dc=de
+scope = sub
+domain = ldap:/etc/postfix/ldap/kodira.de/mydestination.cf
+bind_dn = uid=kolab-service,ou=Special Users,dc=skolar,dc=de
+bind_pw = XXX
+query_filter = (&amp;(|(mail=%s)(alias=%s))(objectclass=kolabinetorgperson))
+result_attribute = mail</pre>
+
+<p>
+Almost done, but don’t forget to reference those files from /etc/postfix/main.cf.
+</p>
+
+<p>
+The bad news is: you have to add and adjust those 4 files for each domain which should support aliases. But the good news is: once configured you can use as many aliases for that domain as you want. No need to change config files for that.
+</p>
+
+</div>
+<!-- EDIT9 SECTION "POSTFIX PART 2 ALIASDOMAINS (OPTIONAL)" [10112-12676] -->
+<h1 class="sectionedit10" id="enable_tls">ENABLE TLS</h1>
+<div class="level1">
+
+<p>
+Please read the following:
+</p>
+
+<p>
+<a href="https://docs.kolab.org/howtos/secure-kolab-server.html" class="urlextern" title="https://docs.kolab.org/howtos/secure-kolab-server.html"  rel="nofollow">https://docs.kolab.org/howtos/secure-kolab-server.html</a>
+</p>
+
+<p>
+Some of the postfix settings did not work for me. See my working tls related settings below.
+</p>
+
+<p>
+postconf -n|grep tls
+</p>
+<pre class="code">smtp_use_tls = yes
+smtpd_tls_CAfile = /etc/pki/tls/certs/rapidssl-ca.crt
+smtpd_tls_auth_only = yes
+smtpd_tls_cert_file = /etc/pki/tls/certs/&lt;filename&gt;.crt
+smtpd_tls_key_file = /etc/pki/tls/private/&lt;filename&gt;.key
+smtpd_tls_mandatory_ciphers = medium
+smtpd_tls_mandatory_exclude_ciphers = aNULL, eNULL, EXPORT, DES, RC4, MD5, PSK, aECDH, EDH-DSS-DES-CBC3-SHA, EDH-RSA-DES-CDC3-SHA, KRB5-DE5, CBC3-SHA
+smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3
+smtpd_tls_received_header = yes
+smtpd_use_tls = yes
+tls_random_source = dev:/dev/urandom</pre>
+
+</div>
+<!-- EDIT10 SECTION "ENABLE TLS" [12677-13511] -->
+<h1 class="sectionedit11" id="anti-spam">ANTI-SPAM</h1>
+<div class="level1">
+
+</div>
+<!-- EDIT11 SECTION "ANTI-SPAM" [13512-13537] -->
+<h2 class="sectionedit12" id="spf">SPF</h2>
+<div class="level2">
+
+<p>
+Get familiar with SPF: <a href="http://www.openspf.org/" class="urlextern" title="http://www.openspf.org/"  rel="nofollow">http://www.openspf.org/</a>
+</p>
+
+<p>
+Example <abbr title="Domain Name System">DNS</abbr> entries. 
+</p>
+<pre class="code">mydomain.com. IN TXT &quot;v=spf1 a mx ~all&quot;
+mydomain.com. IN SPF &quot;v=spf1 a mx ~all&quot;</pre>
+
+</div>
+<!-- EDIT12 SECTION "SPF" [13538-13725] -->
+<h2 class="sectionedit13" id="opendkim">OPENDKIM</h2>
+<div class="level2">
+
+<p>
+Install the package using yum:
+</p>
+<pre class="code">yum install opendkim</pre>
+
+<p>
+CONFIGURE OPENDKIM
+</p>
+
+<p>
+Next thing to do is to configure OpenDKIM. Its main configuration file is located in /etc/opendkim.conf, so before making any changes create a backup and add/edit the following:
+</p>
+<pre class="code">## cp /etc/opendkim.conf{,.orig}
+## vim /etc/opendkim.conf
+&lt;code&gt;
+&lt;code&gt;
+AutoRestart             Yes
+AutoRestartRate         10/1h
+LogWhy                  Yes
+Syslog                  Yes
+SyslogSuccess           Yes
+Mode                    sv
+Canonicalization        relaxed/simple
+ExternalIgnoreList      refile:/etc/opendkim/TrustedHosts
+InternalHosts           refile:/etc/opendkim/TrustedHosts
+KeyTable                refile:/etc/opendkim/KeyTable
+SigningTable            refile:/etc/opendkim/SigningTable
+SignatureAlgorithm      rsa-sha256
+Socket                  inet:8891@localhost
+PidFile                 /var/run/opendkim/opendkim.pid
+UMask                   022
+UserID                  opendkim:opendkim
+TemporaryDirectory      /var/tmp</pre>
+
+<p>
+SET-UP PUBLIC/PRIVATE KEYS
+</p>
+
+<p>
+Generate set of keys for your mydomain.com domain name:
+</p>
+<pre class="code">## mkdir /etc/opendkim/keys/mydomain.com
+## opendkim-genkey -D /etc/opendkim/keys/mydomain.com/ -d mydomain.com -s default
+## chown -R opendkim: /etc/opendkim/keys/mydomain.com
+## mv /etc/opendkim/keys/mydomain.com/default.private /etc/opendkim/keys/mydomain.com/default</pre>
+
+<p>
+Add mydomain.com to OpenDKIM’s key table by adding the following record in /etc/opendkim/KeyTable
+</p>
+<pre class="code">default._domainkey.mydomain.com mydomain.com:default:/etc/opendkim/keys/mydomain.com/default</pre>
+
+<p>
+Next, edit /etc/opendkim/SigningTable and add the following record to OpenDKIM’s signing table:
+</p>
+<pre class="code">*@mydomain.com default._domainkey.mydomain.com</pre>
+
+<p>
+Add your domain and your hostname as trusted hosts in /etc/opendkim/TrustedHosts:
+</p>
+<pre class="code">127.0.0.1
+mydomain.com
+host.mydomain.com</pre>
+
+<p>
+Assuming the domain in question is ‘mydomain.com’ and server’s hostname is set to ‘host.mydomain.com’
+</p>
+
+<p>
+Finally, edit your mydomain.com <abbr title="Domain Name System">DNS</abbr> zone and add the TXT record from /etc/opendkim/keys/mydomain.com/default.txt
+</p>
+
+<p>
+Example
+</p>
+<pre class="code">default._domainkey      IN      TXT     ( &quot;v=DKIM1; k=rsa; &quot;         &quot;p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDApHRr7ZmXRaAB+RQRbP4VdMwIrIHIP18KFtXRsv/xpWc0Gix6ZXN13fcG03KNGKZo2PY+csPkGC5quDnH5V0JEhDZ78KcDWFsU6u4fr9ktVAdt6P7jWXjcyqdHOZ8+YN4cAeU4lRFNgQvdupIcByYwzPYMgBFHfJm9014HvRqhwIDAQAB&quot; )  ; ----- DKIM key default for mydomain.com</pre>
+
+<p>
+You can verify your dkim TXT record is valid using dig for example:
+</p>
+<pre class="code">dig +short default._domainkey.mydomain.com TXT</pre>
+
+<p>
+CONFIGURE POSTFIX
+</p>
+
+<p>
+In order to integrate OpenDKIM with Postfix we need to add the following few lines in /etc/postfix/main.cf:
+</p>
+<pre class="code">smtpd_milters           = inet:127.0.0.1:8891
+non_smtpd_milters       = $smtpd_milters
+milter_default_action   = accept
+milter_protocol         = 2</pre>
+
+</div>
+<!-- EDIT13 SECTION "OPENDKIM" [13726-16669] -->
+<h2 class="sectionedit14" id="dmarc">DMARC</h2>
+<div class="level2">
+
+<p>
+Important, make sure SPF and OPENDKIM are configured before doing this!
+</p>
+
+<p>
+Install OpenDMARC with Yum
+</p>
+<pre class="code">yum install opendmarc</pre>
+
+<p>
+This will download and install OpenDMARC with all the default configuration options included below.
+</p>
+
+<p>
+Edit the configuration files
+</p>
+
+<p>
+On install, the RPM package created a default /etc/opendmarc.conf file with some default options. Use your favorite text editor to open /etc/opendmarc.conf and make the following edits:
+</p>
+
+<p>
+Find the # AuthservID name line, uncomment it by removing the #, then replace the word “name” with “HOSTNAME,” like this:
+</p>
+<pre class="code">AuthservID HOSTNAME</pre>
+
+<p>
+This will use the hostname of the current system in the Authentication-Results: header field after a message is verified. If you prefer to use a different host’s name, you can state that explicitly here instead. For more information, check out: <a href="http://tools.ietf.org/html/rfc7001#section-2.4" class="urlextern" title="http://tools.ietf.org/html/rfc7001#section-2.4"  rel="nofollow">http://tools.ietf.org/html/rfc7001#section-2.4</a>.
+</p>
+
+<p>
+Edit your MTA configuration
+</p>
+
+<p>
+Now you’re ready to tell your MTA about OpenDMARC.
+</p>
+
+<p>
+In the example below, OpenDKIM is already configured on inet:127.0.0.1:8891. Simply add the socket for the OpenDMARC milter to the smtpd_milters line with a comma, in the order you want Postfix to process each milter, like this:
+</p>
+<pre class="code">smtpd_milters           = inet:127.0.0.1:8891, inet:127.0.0.1:8893
+non_smtpd_milters       = $smtpd_milters
+milter_default_action   = accept</pre>
+
+<p>
+Add <abbr title="Domain Name System">DNS</abbr> records
+</p>
+
+<p>
+Example, see dmarc.org for details.
+</p>
+<pre class="code">_dmarc			IN	TXT	&quot;v=DMARC1; p=reject; adkim=s; aspf=s&quot;</pre>
+
+</div>
+<!-- EDIT14 SECTION "DMARC" [16670-18201] -->
+<h2 class="sectionedit15" id="postgrey">POSTGREY</h2>
+<div class="level2">
+<pre class="code">yum install postgrey</pre>
+
+<p>
+Configure longer delay before reconnect is allowed.
+</p>
+
+<p>
+/etc/sysconfig/postgrey 
+</p>
+<pre class="code">POSTGREY_OPTS=&quot;--delay=500&quot;</pre>
+
+<p>
+Activate in Postfix
+</p>
+<pre class="code">smtpd_sender_restrictions = permit_mynetworks, check_policy_service unix:private/sender_policy_incoming, check_policy_service unix:/var/spool/postfix/postgrey/socket</pre>
+
+</div>
+<!-- EDIT15 SECTION "POSTGREY" [18202-18584] -->
+<h1 class="sectionedit16" id="additional_fixes">ADDITIONAL FIXES</h1>
+<div class="level1">
+
+</div>
+<!-- EDIT16 SECTION "ADDITIONAL FIXES" [18585-18616] -->
+<h2 class="sectionedit17" id="log_directory_permissions">LOG DIRECTORY PERMISSIONS</h2>
+<div class="level2">
+<pre class="code">chown apache: /var/log/kolab-freebusy/
+chown apache: /var/log/roundcubemail/
+chmod 750 /var/log/iRony/ /var/log/kolab-webadmin/ /var/log/kolab-syncroton/ /var/log/kolab/ /var/log/dirsrv/slapd-&lt;hostname&gt;</pre>
+
+</div>
+<!-- EDIT17 SECTION "LOG DIRECTORY PERMISSIONS" [18617-18873] -->
+<h2 class="sectionedit18" id="disable_wallace_footer_module">DISABLE WALLACE FOOTER MODULE</h2>
+<div class="level2">
+
+<p>
+/etc/kolab/kolab.conf (remove footer from modules list)
+</p>
+<pre class="code">...
+[wallace]
+modules = resources, invitationpolicy
+...</pre>
+
+</div>
+<!-- EDIT18 SECTION "DISABLE WALLACE FOOTER MODULE" [18874-19043] -->
+<h2 class="sectionedit19" id="root_emails">ROOT EMAILS</h2>
+<div class="level2">
+
+<p>
+/etc/aliases
+</p>
+<pre class="code">root: &lt;email-address-here&gt;</pre>
+<pre class="code">newaliases</pre>
+
+</div>
+<!-- EDIT19 SECTION "ROOT EMAILS" [19044-19150] -->
+<h2 class="sectionedit20" id="clamav_updates">CLAMAV UPDATES</h2>
+<div class="level2">
+<pre class="code">yum install clamav-update</pre>
+
+<p>
+Edit /etc/freshclam.conf in order to enable updating.
+</p>
+<pre class="code">#Example</pre>
+
+</div>
+<!-- EDIT20 SECTION "CLAMAV UPDATES" [19151-19299] -->
+<h1 class="sectionedit21" id="references">REFERENCES</h1>
+<div class="level1">
+
+<p>
+<a href="http://kolab.org/blog/cornelius-hald/2015/01/05/kolab-3.3-multi-domain-setup-centos-7" class="urlextern" title="http://kolab.org/blog/cornelius-hald/2015/01/05/kolab-3.3-multi-domain-setup-centos-7"  rel="nofollow">http://kolab.org/blog/cornelius-hald/2015/01/05/kolab-3.3-multi-domain-setup-centos-7</a>
+</p>
+
+<p>
+<a href="https://www.rosehosting.com/blog/how-to-install-and-integrate-opendkim-with-postfix-on-a-centos-6-vps/" class="urlextern" title="https://www.rosehosting.com/blog/how-to-install-and-integrate-opendkim-with-postfix-on-a-centos-6-vps/"  rel="nofollow">https://www.rosehosting.com/blog/how-to-install-and-integrate-opendkim-with-postfix-on-a-centos-6-vps/</a>
+</p>
+
+<p>
+<a href="http://www.stevejenkins.com/blog/2015/03/installing-opendmarc-rpm-via-yum-with-postfix-or-sendmail-for-rhel-centos-fedora/" class="urlextern" title="http://www.stevejenkins.com/blog/2015/03/installing-opendmarc-rpm-via-yum-with-postfix-or-sendmail-for-rhel-centos-fedora/"  rel="nofollow">http://www.stevejenkins.com/blog/2015/03/installing-opendmarc-rpm-via-yum-with-postfix-or-sendmail-for-rhel-centos-fedora/</a>
+</p>
+
+<p>
+<a href="https://www.osdrop.com/2015/04/hosting-multiple-domains-kolab-groupware" class="urlextern" title="https://www.osdrop.com/2015/04/hosting-multiple-domains-kolab-groupware"  rel="nofollow">https://www.osdrop.com/2015/04/hosting-multiple-domains-kolab-groupware</a>
+</p>
+
+</div>
+<!-- EDIT21 SECTION "REFERENCES" [19300-] --></div>
+</body>
+</html>
